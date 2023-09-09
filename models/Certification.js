@@ -3,10 +3,11 @@ const Schema = mongoose.Schema;
 
 const certificationSchema = Schema(
   {
-    userProfile: { type: Schema.Types.ObjectId, required: true, ref: "UserProfile" },
-    meta: { type: String, default: "" },
-    title: { type: String, default: "" },
-    subtitle: { type: String, default: "" },
+    userProfile: { type: Schema.Types.ObjectId, ref: "UserProfile" },
+    name: { type: String, default: "" },
+    description: { type: String, default: "" },
+    url: { type: String, default: "" },
+    isDeleted: {type: Boolean, default: false, required: true}
   },
   { timestamps: true }
 );

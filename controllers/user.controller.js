@@ -1,5 +1,6 @@
 const { AppError, catchAsync, sendResponse } = require("../helper/utils");
 const User = require("../models/User");
+const UserProfile = require("../models/UserProfile");
 const bcrypt = require("bcryptjs");
 const userController = {};
 
@@ -12,18 +13,22 @@ userController.register = catchAsync(async (req, res, next) => {
   const salt = await bcrypt.genSalt(10);
   password = await bcrypt.hash(password, salt);
   user = await User.create({
-    name,
     email,
     password,
-    isMentor
   });
   const accessToken = await user.generateToken();
+
+  const userProfile = await UserProfile.create({
+    userId: user._id,
+    isMentor,
+    name,
+  });
 
   return sendResponse(
     res,
     200,
     true,
-    { user, accessToken },
+    { userProfile, accessToken },
     null,
     "Create user successful"
   );

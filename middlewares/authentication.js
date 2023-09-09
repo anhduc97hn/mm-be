@@ -4,6 +4,7 @@ const { AppError } = require("../helper/utils");
 const authMiddleware = {};
 
 authMiddleware.loginRequired = (req, res, next) => {
+  console.log("request to middleware");
   try {
     const tokenString = req.headers.authorization;
     if (!tokenString)
@@ -11,6 +12,7 @@ authMiddleware.loginRequired = (req, res, next) => {
     const token = tokenString.replace("Bearer ", "");
     jwt.verify(token, JWT_SECRET_KEY, (err, payload) => {
       if (err) {
+        
         if (err.name === "TokenExpiredError") {
           return next(new AppError(401, "Token expired", "Validation Error"));
         } else {

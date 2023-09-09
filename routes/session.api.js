@@ -12,30 +12,27 @@ const reviewController = require("../controllers/review.controller")
  * @access Login required
  */
 router.post(
-  "/:id/reviews",
+  "/:sessionId/reviews",
   authMiddleware.loginRequired,
   validators.validate([
     body("content", "Missing content").exists().notEmpty(),
     body("rating", "Missing rating").exists().notEmpty(),
-    body("sessionId", "Missing sessionId")
-      .exists()
-      .isString()
-      .custom(validators.checkObjectId),
+    param("sessionId").exists().isString().custom(validators.checkObjectId),
   ]),
   reviewController.createNewReview
 );
 
 const sessionController = require("../controllers/session.controller")
 /**
- * @route POST /sessions/requests/:userId
+ * @route POST /sessions/requests/:userProfileId
  * @description Send a session request
  * @access Login required
  */
 router.post(
-  "/requests",
+  "/requests/:userProfileId",
   authMiddleware.loginRequired,
   validators.validate([
-    param("userId").exists().isString().custom(validators.checkObjectId),
+    param("userProfileId").exists().isString().custom(validators.checkObjectId),
     body("topic", "missing topic").exists().notEmpty(),
     body("problem", "missing problem").exists().notEmpty(),
     body("startDateTime", "missing startDateTime").exists().notEmpty(),
@@ -67,32 +64,18 @@ router.get(
 );
 
 /**
- * @route PUT /sessions/requests/:userId
- * @description Accept/Reject a received pending requests
+ * @route PUT /sessions/requests/:sessionId
+ * @description Accept/Reject/Cancel/Complete a session request
  * @access Login required
  */
 router.put(
-  "/requests/:userId",
+  "/requests/:sessionId",
   authMiddleware.loginRequired,
   validators.validate([
-    param("userId").exists().isString().custom(validators.checkObjectId),
-    body("status").exists().isString().isIn(["accepted", "declined"]),
+    param("sessionId").exists().isString().custom(validators.checkObjectId),
+    body("status").exists().isString().isIn(["accepted", "declined", "completed", "cancelled"]),
   ]),
   sessionController.reactSessionRequest
-);
-
-/**
- * @route DELETE /sessions/requests/:userId
- * @description Cancel a Session request
- * @access Login required
- */
-router.delete(
-  "/requests/:userId",
-  authMiddleware.loginRequired,
-  validators.validate([
-    param("userId").exists().isString().custom(validators.checkObjectId),
-  ]),
-  sessionController.cancelSessionRequest
 );
 
 /**

@@ -4,7 +4,6 @@ const userProfileController = {};
 
 userProfileController.getCurrentUser = catchAsync(async (req, res, next) => {
   const userId = req.userId;
-
   const user = await UserProfile.findOne({userId: userId});
   if (!user)
     throw new AppError(400, "User not found", "Get Current User Error");
@@ -25,10 +24,10 @@ userProfileController.getUsers = catchAsync(async (req, res, next) => {
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
 
-  const filterConditions = [];
+  const filterConditions = [{isMentor: true}];
   if (filter.name) {
     filterConditions.push({
-      ["userId.name"]: { $regex: filter.name, $options: "i" },
+      name: { $regex: filter.name, $options: "i" },
     });
   }
   const filterCrireria = filterConditions.length
@@ -40,9 +39,12 @@ userProfileController.getUsers = catchAsync(async (req, res, next) => {
   const offset = limit * (page - 1);
 
   const users = await UserProfile.find(filterCrireria)
+    .populate("education")
+    .populate("experience")
+    .populate("certifications")
     .sort({ createdAt: -1 })
     .skip(offset)
-    .limit(limit)
+    .limit(limit);
 
   return sendResponse(
     res,
@@ -55,9 +57,12 @@ userProfileController.getUsers = catchAsync(async (req, res, next) => {
 });
 
 userProfileController.getSingleUser = catchAsync(async (req, res, next) => {
-  const userId = req.params.id;
+  const {userProfileId} = req.params;
 
-  let user = await UserProfile.findOne({userId: userId});
+  let user = await UserProfile.findById(userProfileId)
+    .populate("education")
+    .populate("experience")
+    .populate("certifications");
   if (!user) throw new AppError(404, "User not found", "Get Single User Error");
 
   return sendResponse(res, 200, true, user, null, "");

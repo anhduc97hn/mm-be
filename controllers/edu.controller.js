@@ -1,25 +1,40 @@
 const { AppError, catchAsync, sendResponse } = require("../helper/utils");
 const Education = require("../models/Education");
+const UserProfile = require("../models/UserProfile");
 const eduController = {};
 
 eduController.createNewEdu = catchAsync(async (req, res, next) => {
   const { ...eduFields } = req.body;
+  const userId = req.userId; 
+
+  const userProfile = await UserProfile.findOne({userId: userId})
 
   let education = await Education.create({
     ...eduFields,
+    userProfile: userProfile._id, 
   });
 
-  education = await Education.populate("userProfile");
+  userProfile.education.push(education._id);
+  await userProfile.save(); 
 
   return sendResponse(res, 200, true, education, null, "Create new edu successful");
 });
 
 eduController.getEdu = catchAsync(async (req, res, next) => {
   let { page, limit } = req.query;
+  const currentUserId = req.userId;
 
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
-  const filterConditions = [{ isDeleted: false }];
+
+  const currentUserProfile = await UserProfile.findOne({
+    userId: currentUserId,
+  });
+
+  const filterConditions = [
+    { isDeleted: false },
+    { userProfile: currentUserProfile._id },
+  ];
   const filterCrireria = filterConditions.length
     ? { $and: filterConditions }
     : {};
@@ -31,8 +46,7 @@ eduController.getEdu = catchAsync(async (req, res, next) => {
   const education = await Education.find(filterCrireria)
     .sort({ createdAt: -1 })
     .skip(offset)
-    .limit(limit)
-    .populate("userProfile");
+    .limit(limit);
 
   return sendResponse(
     res,
@@ -45,13 +59,13 @@ eduController.getEdu = catchAsync(async (req, res, next) => {
 });
 
 eduController.updateSingleEdu = catchAsync(async (req, res, next) => {
-  const eduId = req.params.id;
+  const { educationId } = req.params;
 
-  const education = await Education.findById(eduId);
+  const education = await Education.findById(educationId);
   if (!education)
     throw new AppError(404, "Education not found", "Update Education Error");
 
-  const allows = [...req.body];
+  const allows = ["degree", "end_year", "field", "description", "url"];
   allows.forEach((field) => {
     if (req.body[field] !== undefined) {
       education[field] = req.body[field];
@@ -70,10 +84,10 @@ eduController.updateSingleEdu = catchAsync(async (req, res, next) => {
 });
 
 eduController.deleteSingleEdu = catchAsync(async (req, res, next) => {
-  const eduId = req.params.id;
+  const { educationId } = req.params;
 
-  const education = await Education.findOneAndUpdate(
-    { _id: eduId },
+  const education = await Education.findByIdAndUpdate(
+    educationId,
     { isDeleted: true },
     { new: true }
   );

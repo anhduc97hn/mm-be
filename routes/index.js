@@ -18,6 +18,18 @@ router.use("/users", userApi);
 const userProfileApi = require("./userProfile.api");
 router.use("/userProfiles", userProfileApi);
 
+// educationApi
+const educationApi = require("./education.api");
+router.use("/education", educationApi);
+
+// experienceApi
+const experienceApi = require("./experience.api");
+router.use("/experiences", experienceApi);
+
+// certificationApi
+const certificationApi = require("./certification.api");
+router.use("/certifications", certificationApi);
+
 // reviewApi
 const reviewApi = require("./review.api");
 router.use("/reviews", reviewApi);
