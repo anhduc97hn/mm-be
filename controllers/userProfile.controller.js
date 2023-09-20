@@ -4,27 +4,28 @@ const userProfileController = {};
 
 userProfileController.getCurrentUser = catchAsync(async (req, res, next) => {
   const userId = req.userId;
-  const user = await UserProfile.findOne({userId: userId});
-  if (!user)
+
+  const userProfile = await UserProfile.findOne({ userId: userId });
+  if (!userProfile)
     throw new AppError(400, "User not found", "Get Current User Error");
 
   return sendResponse(
     res,
     200,
     true,
-    user,
+    userProfile,
     null,
     "Get current user successful"
   );
 });
 
 userProfileController.getUsers = catchAsync(async (req, res, next) => {
-  let { page, limit, ...filter } = req.query; 
+  let { page, limit, ...filter } = req.query;
 
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
 
-  const filterConditions = [{isMentor: true}];
+  const filterConditions = [{ isMentor: true }];
   if (filter.name) {
     filterConditions.push({
       name: { $regex: filter.name, $options: "i" },
@@ -38,9 +39,9 @@ userProfileController.getUsers = catchAsync(async (req, res, next) => {
   const totalPages = Math.ceil(count / limit);
   const offset = limit * (page - 1);
 
-  const users = await UserProfile.find(filterCrireria)
+  const userProfiles = await UserProfile.find(filterCrireria)
     .populate("education")
-    .populate("experience")
+    .populate("experiences")
     .populate("certifications")
     .sort({ createdAt: -1 })
     .skip(offset)
@@ -50,31 +51,60 @@ userProfileController.getUsers = catchAsync(async (req, res, next) => {
     res,
     200,
     true,
-    { users, totalPages, count },
+    { userProfiles, totalPages, count },
     null,
     ""
   );
 });
 
-userProfileController.getSingleUser = catchAsync(async (req, res, next) => {
-  const {userProfileId} = req.params;
+userProfileController.getFeaturedUsers = catchAsync(async (req, res, next) => {
+  let { page, limit } = req.query;
 
-  let user = await UserProfile.findById(userProfileId)
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 9;
+
+  const filterConditions = [{ isMentor: true }];
+
+  const filterCrireria = filterConditions.length
+    ? { $and: filterConditions }
+    : {};
+
+  const count = await UserProfile.countDocuments(filterCrireria);
+  const offset = limit * (page - 1);
+
+  const userProfiles = await UserProfile.find(filterCrireria)
     .populate("education")
-    .populate("experience")
-    .populate("certifications");
-  if (!user) throw new AppError(404, "User not found", "Get Single User Error");
+    .populate("experiences")
+    .populate("certifications")
+    .sort({ sessionCount: -1 })
+    .skip(offset)
+    .limit(limit);
 
-  return sendResponse(res, 200, true, user, null, "");
+  return sendResponse(res, 200, true, { userProfiles, count }, null, "");
+});
+
+userProfileController.getSingleUser = catchAsync(async (req, res, next) => {
+  const { userProfileId } = req.params;
+
+  const userProfile = await UserProfile.findById(userProfileId)
+    .populate("education")
+    .populate("experiences")
+    .populate("certifications");
+  if (!userProfile)
+    throw new AppError(404, "User not found", "Get Single User Error");
+
+  return sendResponse(res, 200, true, userProfile, null, "");
 });
 
 userProfileController.updateProfile = catchAsync(async (req, res, next) => {
   const userId = req.userId;
-  const user = await UserProfile.findOne({userId: userId});
-  if (!user)
+  const userProfile = await UserProfile.findOne({ userId: userId });
+
+  if (!userProfile)
     throw new AppError(404, "Account not found", "Update Profile Error");
 
   const allows = [
+    "name",
     "avatarUrl",
     "aboutMe",
     "city",
@@ -83,7 +113,7 @@ userProfileController.updateProfile = catchAsync(async (req, res, next) => {
     "linkedinLink",
     "twitterLink",
     "currentCompany",
-    "currentPosition"
+    "currentPosition",
   ];
   allows.forEach((field) => {
     if (req.body[field] !== undefined) {
@@ -91,16 +121,15 @@ userProfileController.updateProfile = catchAsync(async (req, res, next) => {
     }
   });
 
-  await user.save();
+  await userProfile.save();
   return sendResponse(
     res,
     200,
     true,
-    user,
+    userProfile,
     null,
     "Update Profile successfully"
   );
 });
-
 
 module.exports = userProfileController;

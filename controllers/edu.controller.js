@@ -86,11 +86,8 @@ eduController.updateSingleEdu = catchAsync(async (req, res, next) => {
 eduController.deleteSingleEdu = catchAsync(async (req, res, next) => {
   const { educationId } = req.params;
 
-  const education = await Education.findByIdAndUpdate(
-    educationId,
-    { isDeleted: true },
-    { new: true }
-  );
+  // hard delete because it's referenced to user profile.
+  const education = await Education.findByIdAndUpdate(educationId);
 
   if (!education)
     throw new AppError(

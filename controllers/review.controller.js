@@ -89,23 +89,30 @@ reviewController.getSingleReview = catchAsync(async (req, res, next) => {
 });
 
 reviewController.getReviews = catchAsync(async (req, res, next) => {
-  const {userProfileId} = req.params; 
+  const { userProfileId } = req.params;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
 
   const mentorProfile = await UserProfile.findById(userProfileId);
-  if (!mentorProfile) throw new AppError(404, "Mentor not found", "Get Reviews Error");
+  if (!mentorProfile)
+    throw new AppError(404, "Mentor not found", "Get Reviews Error");
 
-  const reviewWithSessions = await Review.find().populate("session");
+  const sessionsOfMentor = await Session.find({ to: userProfileId });
 
-  const count = reviewWithSessions.filter((review) => review.session.to.toString() === userProfileId).length;
+  const sessionIds = sessionsOfMentor.map((session) => session._id)
+
+  const count = await Review.countDocuments({ session: { $in: sessionIds } })
   const totalPages = Math.ceil(count / limit);
   const offset = limit * (page - 1);
 
-  const reviews = await reviewWithSessions
-  .filter((review) => review.session.to.toString() === userProfileId)
-  .sort((a, b) => b.createdAt - a.createdAt)
-  .slice(offset, offset + limit);
+  const reviews = await Review.find({ session: { $in: sessionIds } })
+    .populate({
+      path: "session",
+      populate: { path: "from to" },
+    })
+    .sort({ createdAt: -1 })
+    .skip(offset)
+    .limit(limit);
 
   return sendResponse(res, 200, true, { reviews, totalPages, count }, null, "");
 });

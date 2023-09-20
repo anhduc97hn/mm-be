@@ -64,16 +64,16 @@ router.get(
 );
 
 /**
- * @route PUT /sessions/requests/:sessionId
- * @description Accept/Reject/Cancel/Complete a session request
+ * @route PUT /sessions/:sessionId
+ * @description Accept/Reject/Cancel/Complete/etc update a session status 
  * @access Login required
  */
 router.put(
-  "/requests/:sessionId",
+  "/:sessionId",
   authMiddleware.loginRequired,
   validators.validate([
     param("sessionId").exists().isString().custom(validators.checkObjectId),
-    body("status").exists().isString().isIn(["accepted", "declined", "completed", "cancelled"]),
+    body("status").exists().isString().isIn(["pending","accepted", "declined", "completed", "cancelled", "reviewed"]),
   ]),
   sessionController.reactSessionRequest
 );
@@ -83,6 +83,16 @@ router.put(
  * @description Get the list of sessions
  * @access Login required
  */
-router.get("/", authMiddleware.loginRequired, sessionController.getSessionList);
+router.get(
+  "/",
+  authMiddleware.loginRequired,
+  validators.validate([
+    body("status")
+      .exists()
+      .isString()
+      .isIn(["pending","accepted", "declined", "completed", "cancelled", "reviewed"]),
+  ]),
+  sessionController.getSessionList
+);
 
 module.exports = router;

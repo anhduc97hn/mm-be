@@ -189,7 +189,7 @@ sessionController.getSentSessionRequestList = catchAsync(
 sessionController.reactSessionRequest = catchAsync(async (req, res, next) => {
   const userId = req.userId;
   const { sessionId } = req.params;
-  const { status } = req.body; // status: accepted | declined | cancelled | completed 
+  const { status } = req.body;  
 
   let session = await Session.findById(sessionId)
 
@@ -221,23 +221,17 @@ sessionController.reactSessionRequest = catchAsync(async (req, res, next) => {
     true,
     session,
     null,
-    "Update Session Request successfully"
+    "Update Session successfully"
   );
 });
 
 sessionController.getSessionList = catchAsync(async (req, res, next) => {
-  let { page, limit, ...filter } = { ...req.query };
+  let { page, limit, status } = { ...req.query };
 
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
 
-  const filterConditions = [{ status: { $in: ["completed", "reviewed"] } }];
-
-  if (filter.topic) {
-    filterConditions.push({
-      ["topic"]: { $regex: filter.name, $options: "i" },
-    });
-  }
+  const filterConditions = [{ status: status }];
 
   const filterCrireria = filterConditions.length
     ? { $and: filterConditions }
@@ -252,8 +246,8 @@ sessionController.getSessionList = catchAsync(async (req, res, next) => {
     .skip(offset)
     .limit(limit)
     .populate("from")
-    .populate("to")
-    
+    .populate("to");
+
   return sendResponse(
     res,
     200,

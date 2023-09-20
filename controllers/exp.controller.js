@@ -14,7 +14,7 @@ expController.createNewExp = catchAsync(async (req, res, next) => {
     userProfile: userProfile._id,
   });
 
-  userProfile.experience.push(experience._id);
+  userProfile.experiences.push(experience._id);
   await userProfile.save();
 
   return sendResponse(
@@ -86,11 +86,8 @@ expController.updateSingleExp = catchAsync(async (req, res, next) => {
 expController.deleteSingleExp = catchAsync(async (req, res, next) => {
   const { expId } = req.params;
 
-  const experience = await Experience.findByIdAndUpdate(
-    expId,
-    { isDeleted: true },
-    { new: true }
-  );
+  // hard delete because it's referenced to user profile.
+  const experience = await Experience.findByIdAndUpdate(expId);
 
   if (!experience)
     throw new AppError(

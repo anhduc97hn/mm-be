@@ -79,11 +79,8 @@ certiController.updateSingleCerti = catchAsync(async (req, res, next) => {
 certiController.deleteSingleCerti = catchAsync(async (req, res, next) => {
   const { certiId } = req.params;
 
-  const certification = await Certification.findByIdAndUpdate(
-    certiId,
-    { isDeleted: true },
-    { new: true }
-  );
+  // hard delete because it's referenced to user profile.
+  const certification = await Certification.findByIdAndDelete(certiId);
 
   if (!certification)
     throw new AppError(

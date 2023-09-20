@@ -19,7 +19,7 @@ const userProfileSchema = Schema(
 
     education: [{ type: Schema.Types.ObjectId, ref: "Education" }],
     certifications: [{ type: Schema.Types.ObjectId, ref: "Certification" }],
-    experience: [{ type: Schema.Types.ObjectId, ref: "Experience" }],
+    experiences: [{ type: Schema.Types.ObjectId, ref: "Experience" }],
 
     currentCompany: { type: String, default: "" },
     currentPosition: { type: String, default: "" },

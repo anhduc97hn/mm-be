@@ -14,6 +14,13 @@ const userProfileController = require("../controllers/userProfile.controller");
 router.get("/", userProfileController.getUsers);
 
 /**
+ * @route GET /userProfiles/featured?page=1&limit=9
+ * @description Get featured mentors on homepage
+ * @access Public
+ */
+router.get("/featured", userProfileController.getFeaturedUsers);
+
+/**
  * @route GET /userProfiles/me
  * @description Get current user info
  * @access Login required

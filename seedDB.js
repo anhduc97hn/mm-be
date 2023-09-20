@@ -97,9 +97,28 @@ async function seedDB() {
 
     const users = await User.insertMany(userData);
 
+   // Seed UserProfile data with references to User records.
+   const userProfileData = users.map((user) => {
+    
+    return {
+      userId: user._id,
+      name: faker.person.fullName(),
+      avatarUrl: faker.internet.avatar(),
+      aboutMe: faker.person.bio(),
+      city: faker.location.city(),
+      currentCompany: faker.company.name(),
+      currentPosition: faker.person.jobTitle(),
+      education: [],
+      experiences: [],
+      certifications: [],
+    };
+  });
+
+  const userProfile = await UserProfile.insertMany(userProfileData);
+
     // Seed User background with Faker
-    const educationData = Array.from({ length: 20 }, () => ({
-      userProfile: null,
+    const educationData = Array.from({ length: 40 }, () => ({
+      userProfile: userProfile[faker.number.int({ min: 0, max: userProfile.length - 1 })]._id,
       degree: faker.lorem.sentence(5),
       end_year: faker.date.past({
         years: 10,
@@ -112,10 +131,10 @@ async function seedDB() {
 
     const education = await Education.insertMany(educationData);
 
-    const experienceData = Array.from({ length: 20 }, () => {
+    const experienceData = Array.from({ length: 40 }, () => {
       const end_date = faker.date.past();
       return {
-        userProfile: null,
+        userProfile: userProfile[faker.number.int({ min: 0, max: userProfile.length - 1 })]._id,
         company: faker.company.name(),
         industry: faker.person.jobArea(),
         location: faker.location.city(),
@@ -129,81 +148,58 @@ async function seedDB() {
       };
     });
 
-    const experience = await Experience.insertMany(experienceData);
+    const experiences = await Experience.insertMany(experienceData);
 
-    const certificationData = Array.from({ length: 20 }, () => ({
-      userProfile: null,
+    const certificationData = Array.from({ length: 40 }, () => ({
+      userProfile: userProfile[faker.number.int({ min: 0, max: userProfile.length - 1 })]._id,
       name: faker.lorem.sentence(5),
       description: faker.lorem.paragraph(),
       url: faker.internet.url(),
     }));
 
-    const certification = await Certification.insertMany(certificationData);
+    const certifications = await Certification.insertMany(certificationData);
 
-    // Seed UserProfile data with references to User, User background and Faker data
-    const userProfileData = users.map((user) => {
-      const educationIds = education
-        .slice(0, faker.number.int({ min: 1, max: 3 }))
-        .map((edu) => edu._id);
-
-      const experienceIds = experience
-        .slice(0, faker.number.int({ min: 1, max: 10 }))
-        .map((exp) => exp._id);
-
-      const certificationIds = certification
-        .slice(0, faker.number.int({ min: 1, max: 20 }))
-        .map((certi) => certi._id);
-
-      return {
-        userId: user._id,
-        name: faker.person.fullName(),
-        avatarUrl: faker.internet.avatar(),
-        aboutMe: faker.person.bio(),
-        city: faker.location.city(),
-        currentCompany: faker.company.name(),
-        currentPosition: faker.person.jobTitle(),
-        // sessionCount: faker.number.int({ min: 10, max: 100 }),
-        // reviewCount: faker.number.int({ min: 10, max: 100 }),
-        // reviewAverageRating: faker.number.float({
-        //   min: 1,
-        //   max: 5,
-        //   precision: 0.1,
-        // }),
-        education: educationIds,
-        experience: experienceIds,
-        certifications: certificationIds,
-      };
-    });
-
-    const userProfile = await UserProfile.insertMany(userProfileData);
+    // Save background records to User Profile
 
     for (let i = 0; i < userProfile.length; i++) {
-      const educationIds = userProfile[i].education;
-      await Education.updateMany(
-        { _id: { $in: educationIds } },
-        { $set: { userProfile: userProfile[i]._id } }
+      const userEducation = education.filter(
+        (edu) => edu.userProfile.toString() === userProfile[i]._id.toString()
+      );
+      const educationIds = userEducation.map((edu) => edu._id);
+
+      await UserProfile.updateOne(
+        { _id: userProfile[i]._id },
+        { $set: { education: educationIds } }
       );
     }
 
     for (let i = 0; i < userProfile.length; i++) {
-      const experienceIds = userProfile[i].experience;
-      await Experience.updateMany(
-        { _id: { $in: experienceIds } },
-        { $set: { userProfile: userProfile[i]._id } }
+      const userExperiences = experiences.filter(
+        (exp) => exp.userProfile.toString() === userProfile[i]._id.toString()
+      );
+      const experienceIds = userExperiences.map((exp) => exp._id);
+
+      await UserProfile.updateOne(
+        { _id: userProfile[i]._id },
+        { $set: { experiences: experienceIds } }
       );
     }
 
     for (let i = 0; i < userProfile.length; i++) {
-      const certificationIds = userProfile[i].certification;
-      await Certification.updateMany(
-        { _id: { $in: certificationIds } },
-        { $set: { userProfile: userProfile[i]._id } }
+      const userCertifications = certifications.filter(
+        (certi) => certi.userProfile.toString() === userProfile[i]._id.toString()
+      );
+      const certificationIds = userCertifications.map((certi) => certi._id);
+
+      await UserProfile.updateOne(
+        { _id: userProfile[i]._id },
+        { $set: { certifications: certificationIds } }
       );
     }
 
     // Seed Session
 
-    const sessionData = Array.from({ length: 20 }, () => {
+    const sessionData = Array.from({ length: 40 }, () => {
       const startDateTime = faker.date.anytime();
       const endDateTime = new Date(startDateTime);
       endDateTime.setHours(endDateTime.getHours() + 1);

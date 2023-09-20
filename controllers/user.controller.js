@@ -12,11 +12,15 @@ userController.register = catchAsync(async (req, res, next) => {
 
   const salt = await bcrypt.genSalt(10);
   password = await bcrypt.hash(password, salt);
+
+  // create a new record in User collection
   user = await User.create({
     email,
     password,
   });
   const accessToken = await user.generateToken();
+
+  // create a new record in UserProfile collection
 
   const userProfile = await UserProfile.create({
     userId: user._id,
