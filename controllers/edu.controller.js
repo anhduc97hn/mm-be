@@ -43,7 +43,7 @@ eduController.getEdu = catchAsync(async (req, res, next) => {
   const totalPages = Math.ceil(count / limit);
   const offset = limit * (page - 1);
 
-  const education = await Education.find(filterCrireria)
+  const educations = await Education.find(filterCrireria)
     .sort({ createdAt: -1 })
     .skip(offset)
     .limit(limit);
@@ -52,7 +52,7 @@ eduController.getEdu = catchAsync(async (req, res, next) => {
     res,
     200,
     true,
-    { education, totalPages, count },
+    { educations, totalPages, count },
     null,
     ""
   );
@@ -87,7 +87,7 @@ eduController.deleteSingleEdu = catchAsync(async (req, res, next) => {
   const { educationId } = req.params;
 
   // hard delete because it's referenced to user profile.
-  const education = await Education.findByIdAndUpdate(educationId);
+  const education = await Education.findByIdAndDelete(educationId);
 
   if (!education)
     throw new AppError(

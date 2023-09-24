@@ -20,7 +20,7 @@ router.use("/userProfiles", userProfileApi);
 
 // educationApi
 const educationApi = require("./education.api");
-router.use("/education", educationApi);
+router.use("/educations", educationApi);
 
 // experienceApi
 const experienceApi = require("./experience.api");

@@ -28,6 +28,8 @@ userController.register = catchAsync(async (req, res, next) => {
     name,
   });
 
+  await userProfile.populate("userId");
+
   return sendResponse(
     res,
     200,

@@ -5,7 +5,7 @@ const userProfileController = {};
 userProfileController.getCurrentUser = catchAsync(async (req, res, next) => {
   const userId = req.userId;
 
-  const userProfile = await UserProfile.findOne({ userId: userId });
+  const userProfile = await UserProfile.findOne({ userId: userId }).populate("userId");
   if (!userProfile)
     throw new AppError(400, "User not found", "Get Current User Error");
 
@@ -20,15 +20,34 @@ userProfileController.getCurrentUser = catchAsync(async (req, res, next) => {
 });
 
 userProfileController.getUsers = catchAsync(async (req, res, next) => {
-  let { page, limit, ...filter } = req.query;
+  let { page, limit, filter } = req.query;
 
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
 
   const filterConditions = [{ isMentor: true }];
-  if (filter.name) {
+
+  if (filter.searchQuery) {
     filterConditions.push({
-      name: { $regex: filter.name, $options: "i" },
+      name: { $regex: filter.searchQuery, $options: "i" },
+    });
+  }
+
+  if (filter.company) {
+    filterConditions.push({
+      currentCompany: { $regex: filter.company, $options: "i" },
+    });
+  }
+
+  if (filter.position) {
+    filterConditions.push({
+      currentPosition: { $regex: filter.position, $options: "i" },
+    });
+  }
+
+  if (filter.city) {
+    filterConditions.push({
+      city: { $regex: filter.city, $options: "i" },
     });
   }
   const filterCrireria = filterConditions.length
@@ -39,11 +58,26 @@ userProfileController.getUsers = catchAsync(async (req, res, next) => {
   const totalPages = Math.ceil(count / limit);
   const offset = limit * (page - 1);
 
+  const sortOptions = {};
+  switch (filter.sortBy) {
+    case "sessionDesc":
+      sortOptions.sessionCount = -1;
+      break;
+    case "newest":
+      sortOptions.createdAt = -1;
+      break;
+    case "reviewDesc":
+      sortOptions.reviewAverageRating = -1;
+      break;
+    default:
+      sortOptions.reviewAverageRating = -1; // Default case
+  }
+
   const userProfiles = await UserProfile.find(filterCrireria)
     .populate("education")
     .populate("experiences")
     .populate("certifications")
-    .sort({ createdAt: -1 })
+   .sort(sortOptions)
     .skip(offset)
     .limit(limit);
 
@@ -117,7 +151,7 @@ userProfileController.updateProfile = catchAsync(async (req, res, next) => {
   ];
   allows.forEach((field) => {
     if (req.body[field] !== undefined) {
-      user[field] = req.body[field];
+      userProfile[field] = req.body[field];
     }
   });
 

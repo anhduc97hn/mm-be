@@ -7,7 +7,7 @@ const { body, param } = require("express-validator");
 const eduController = require("../controllers/edu.controller");
 
 /**
- * @route POST /education
+ * @route POST /educations
  * @description Create a new education form
  * @access Login required
  */
@@ -24,7 +24,7 @@ router.post(
 );
 
 /**
- * @route GET /education?page=1&limit=10
+ * @route GET /educations?page=1&limit=10
  * @description Get all education of the current user with pagination
  * @access Login required
  */
@@ -35,7 +35,7 @@ router.get(
 );
 
 /**
- * @route PUT /education/:educationId
+ * @route PUT /educations/:educationId
  * @description Update an education
  * @access Login required
  */
@@ -49,7 +49,7 @@ router.put(
 );
 
 /**
- * @route DELETE /education/:id
+ * @route DELETE /educations/:educationId
  * @description Delete an education
  * @access Login required
  */

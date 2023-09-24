@@ -15,8 +15,8 @@ const sessionController = {};
 const calculateSessionCount = async (userProfileId) => {
   const filterConditions = [
     {
-      $or: [{ to: userProfileId }, { from: userProfileId }],
-      status: { $in: ["completed", "reviewed"] },
+      to: userProfileId,
+      status: "completed",
     },
   ];
 
@@ -211,9 +211,9 @@ sessionController.reactSessionRequest = catchAsync(async (req, res, next) => {
   // update session to DB 
   await session.save();
 
-  const currentUserProfile = await UserProfile.findOne({ userId: userId });
+  const toUserProfileId = session.to;
 
-  await calculateSessionCount(currentUserProfile._id);
+  await calculateSessionCount(toUserProfileId);
 
   return sendResponse(
     res,
@@ -226,22 +226,28 @@ sessionController.reactSessionRequest = catchAsync(async (req, res, next) => {
 });
 
 sessionController.getSessionList = catchAsync(async (req, res, next) => {
-  let { page, limit, status } = { ...req.query };
+  let { page, limit, status } = req.query;
+  let userId = req.userId;
+
+  const userProfile = await UserProfile.findOne({ userId: userId });
 
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
 
-  const filterConditions = [{ status: status }];
+  const filterConditions = [
+    { status: status },
+    { $or: [{ from: userProfile._id }, { to: userProfile._id }] },
+  ];
 
-  const filterCrireria = filterConditions.length
+  const filterCriteria = filterConditions.length
     ? { $and: filterConditions }
     : {};
 
-  const count = await Session.countDocuments(filterCrireria);
+  const count = await Session.countDocuments(filterCriteria);
   const totalPages = Math.ceil(count / limit);
   const offset = limit * (page - 1);
 
-  const sessions = await Session.find(filterCrireria)
+  const sessions = await Session.find(filterCriteria)
     .sort({ createdAt: -1 })
     .skip(offset)
     .limit(limit)

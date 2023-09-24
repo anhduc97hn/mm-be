@@ -43,7 +43,7 @@ expController.getExp = catchAsync(async (req, res, next) => {
   const totalPages = Math.ceil(count / limit);
   const offset = limit * (page - 1);
 
-  const experience = await Experience.find(filterCrireria)
+  const experiences = await Experience.find(filterCrireria)
     .sort({ createdAt: -1 })
     .skip(offset)
     .limit(limit)
@@ -52,7 +52,7 @@ expController.getExp = catchAsync(async (req, res, next) => {
     res,
     200,
     true,
-    { experience, totalPages, count },
+    { experiences, totalPages, count },
     null,
     ""
   );
@@ -87,7 +87,7 @@ expController.deleteSingleExp = catchAsync(async (req, res, next) => {
   const { expId } = req.params;
 
   // hard delete because it's referenced to user profile.
-  const experience = await Experience.findByIdAndUpdate(expId);
+  const experience = await Experience.findByIdAndDelete(expId);
 
   if (!experience)
     throw new AppError(

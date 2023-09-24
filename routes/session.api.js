@@ -73,7 +73,7 @@ router.put(
   authMiddleware.loginRequired,
   validators.validate([
     param("sessionId").exists().isString().custom(validators.checkObjectId),
-    body("status").exists().isString().isIn(["pending","accepted", "declined", "completed", "cancelled", "reviewed"]),
+    // body("status").exists().isString().isIn(["pending","accepted", "declined", "completed", "cancelled", "reviewed"]),
   ]),
   sessionController.reactSessionRequest
 );
@@ -86,12 +86,6 @@ router.put(
 router.get(
   "/",
   authMiddleware.loginRequired,
-  validators.validate([
-    body("status")
-      .exists()
-      .isString()
-      .isIn(["pending","accepted", "declined", "completed", "cancelled", "reviewed"]),
-  ]),
   sessionController.getSessionList
 );
 
