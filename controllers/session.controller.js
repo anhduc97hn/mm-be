@@ -186,20 +186,17 @@ sessionController.createGoogleEvent = catchAsync(async (req, res, next) => {
 
   const calendar = google.calendar({ version: "v3" });
 
-  await calendar.events.insert({
+  const { data: createdEvent } = await calendar.events.insert({
     calendarId: "primary",
     auth: oauth2Client,
     requestBody: gEvent,
   });
 
-  return sendResponse(
-    res,
-    200,
-    true,
-    { session },
-    null,
-    "Create Google Event successfully"
-  );
+  // Construct the Google Calendar event URL
+  const eventUrl = `https://calendar.google.com/calendar/r/eventedit/${createdEvent.id}`;
+
+  // Redirect the user to the Google Calendar event URL
+  res.redirect(eventUrl);
 });
 
 module.exports = sessionController;
