@@ -42,28 +42,6 @@ router.post(
 );
 
 /**
- * @route GET /sessions/requests/incoming
- * @description Get the list of received pending requests
- * @access Login required
- */
-router.get(
-  "/requests/incoming",
-  authMiddleware.loginRequired,
-  sessionController.getReceivedSessionRequestList
-);
-
-/**
- * @route GET /sessions/requests/outgoing
- * @description Get the list of sent pending requests
- * @access Login required
- */
-router.get(
-  "/requests/outgoing",
-  authMiddleware.loginRequired,
-  sessionController.getSentSessionRequestList
-);
-
-/**
  * @route PUT /sessions/:sessionId
  * @description Accept/Reject/Cancel/Complete/etc update a session status 
  * @access Login required
@@ -88,5 +66,16 @@ router.get(
   authMiddleware.loginRequired,
   sessionController.getSessionList
 );
+
+/**
+ * @route GET /sessions/google/redirect
+ * @description Redirect users after OAuth2
+ * @access Google auth
+ */
+router.get(
+  "/google/redirect",
+  sessionController.createGoogleEvent
+);
+
 
 module.exports = router;

@@ -1,9 +1,9 @@
-var express = require('express');
+var express = require("express");
 var router = express.Router();
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
-  res.status(200).send("welcome back")
+router.get("/", function (req, res, next) {
+  res.status(200).send("welcome back");
 });
 
 // authApi
@@ -36,6 +36,6 @@ router.use("/reviews", reviewApi);
 
 // sessionApi
 const sessionApi = require("./session.api");
-router.use("/sessions", sessionApi)
+router.use("/sessions", sessionApi);
 
 module.exports = router;

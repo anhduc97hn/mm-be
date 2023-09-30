@@ -2,13 +2,21 @@ const { AppError, catchAsync, sendResponse } = require("../helper/utils");
 const Session = require("../models/Session");
 const UserProfile = require("../models/UserProfile");
 const { google } = require("googleapis");
-const { JWT } = require("google-auth-library");
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const REDIRECT_URL = process.env.REDIRECT_URL; 
 
-const fs = require("fs");
-const credentialsPath = "./credentials.json";
+// OAuth2 client set up 
 
-const credentialsData = fs.readFileSync(credentialsPath, "utf8");
-const credentials = JSON.parse(credentialsData);
+const oauth2Client = new google.auth.OAuth2(
+  CLIENT_ID,
+  CLIENT_SECRET,
+  REDIRECT_URL
+);
+
+const scopes = [
+  'https://www.googleapis.com/auth/calendar'
+];
 
 const sessionController = {};
 
@@ -28,50 +36,6 @@ const calculateSessionCount = async (userProfileId) => {
   await UserProfile.findByIdAndUpdate(userProfileId, {
     sessionCount: sessionCount,
   });
-};
-
-const createGoogleMeetEvent = async (session) => {
-
-  // send inputs to google api 
-  const gEvent = {
-    summary: session.topic,
-    description: session.problem,
-    start: {
-      dateTime: session.startDateTime.toISOString(),
-      // timeZone: "UTC",
-    },
-    end: {
-      dateTime: session.endDateTime.toISOString(),
-      // timeZone: "UTC",
-    },
-    // Service accounts cannot invite attendees without Domain-Wide Delegation of Authority.'
-    // attendees: [], 
-    // reminders: {
-    //   useDefault: false,
-    //   overrides: [{ method: "popup", "minutes": 10}, {method: "email", "minutes": 24 * 60}],
-    // },
-    // sendUpdates: "all"
-  };
-
-  // create client that we can use to communicate with Google
-  const client = new JWT({
-    email: credentials.client_email,
-    key: credentials.private_key,
-    scopes: [
-      "https://www.googleapis.com/auth/calendar",
-      "https://www.googleapis.com/auth/calendar.events",
-    ],
-  });
-
-  const calendar = google.calendar({ version: "v3" });
-
-  const response = await calendar.events.insert({
-    calendarId: "primary",
-    auth: client,
-    requestBody: gEvent,
-  });
-  // console.log("response.data", response.data);
-  return response.data.htmlLink;
 };
 
 sessionController.sendSessionRequest = catchAsync(async (req, res, next) => {
@@ -98,100 +62,13 @@ sessionController.sendSessionRequest = catchAsync(async (req, res, next) => {
   return sendResponse(res, 200, true, session, null, "Request has been sent");
 });
 
-sessionController.getReceivedSessionRequestList = catchAsync(
-  async (req, res, next) => {
-    let { page, limit, ...filter } = { ...req.query };
-    const userId = req.userId;
-
-    page = parseInt(page) || 1;
-    limit = parseInt(limit) || 10;
-
-    const currentUserProfile = await UserProfile.findOne({ userId: userId });
-
-    const filterConditions = [
-      { to: currentUserProfile._id },
-      { status: "pending" },
-    ];
-    if (filter.topic) {
-      filterConditions.push({
-        ["topic"]: { $regex: filter.topic, $options: "i" },
-      });
-    }
-    const filterCrireria = filterConditions.length
-      ? { $and: filterConditions }
-      : {};
-
-    const count = await Session.countDocuments(filterCrireria);
-    const totalPages = Math.ceil(count / limit);
-    const offset = limit * (page - 1);
-
-    const sessions = await Session.find(filterCrireria)
-      .sort({ createdAt: -1 })
-      .skip(offset)
-      .limit(limit)
-      .populate("from")
-    
-    return sendResponse(
-      res,
-      200,
-      true,
-      { sessions, totalPages, count },
-      null,
-      null
-    );
-  }
-);
-
-sessionController.getSentSessionRequestList = catchAsync(
-  async (req, res, next) => {
-    let { page, limit, ...filter } = { ...req.query };
-    const userId = req.userId;
-
-    const currentUserProfile = await UserProfile.findOne({ userId: userId });
-
-    page = parseInt(page) || 1;
-    limit = parseInt(limit) || 10;
-
-    const filterConditions = [
-      { from: currentUserProfile._id },
-      { status: "pending" },
-    ];
-    if (filter.topic) {
-      filterConditions.push({
-        ["topic"]: { $regex: filter.topic, $options: "i" },
-      });
-    }
-    const filterCrireria = filterConditions.length
-      ? { $and: filterConditions }
-      : {};
-
-    const count = await Session.countDocuments(filterCrireria);
-    const totalPages = Math.ceil(count / limit);
-    const offset = limit * (page - 1);
-
-    const sessions = await Session.find(filterCrireria)
-      .sort({ createdAt: -1 })
-      .skip(offset)
-      .limit(limit)
-      .populate("to")
-
-    return sendResponse(
-      res,
-      200,
-      true,
-      { sessions, totalPages, count },
-      null,
-      null
-    );
-  }
-);
 
 sessionController.reactSessionRequest = catchAsync(async (req, res, next) => {
-  const userId = req.userId;
+ 
   const { sessionId } = req.params;
   const { status } = req.body;  
 
-  let session = await Session.findById(sessionId)
+  let session = await Session.findById(sessionId);
 
   if (!session)
     throw new AppError(
@@ -204,8 +81,14 @@ sessionController.reactSessionRequest = catchAsync(async (req, res, next) => {
 
   // call Google api if status is accepted
   if (status === "accepted") {
-    const gEventLink = await createGoogleMeetEvent(session);
-    session.gEventLink = gEventLink;
+    const state = session._id.toString();
+    const url = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: scopes,
+      state: state
+    });
+
+    session.gEventLink = url;
   }
 
   // update session to DB 
@@ -261,6 +144,61 @@ sessionController.getSessionList = catchAsync(async (req, res, next) => {
     { sessions, totalPages, count },
     null,
     null
+  );
+});
+
+sessionController.createGoogleEvent = catchAsync(async (req, res, next) => {
+  
+  const { code, state } = req.query;
+  const { tokens } = await oauth2Client.getToken(code);
+  // Store or use the access and refresh tokens as needed
+  oauth2Client.setCredentials(tokens);
+ 
+  const session = await Session.findById(state);
+  const fromUserProfile = await UserProfile.findById(session.from).populate(
+    "userId"
+  );
+  const toUserProfile = await UserProfile.findById(session.to).populate(
+    "userId"
+  );
+  const toEmail = toUserProfile.userId.email;
+  const fromEmail = fromUserProfile.userId.email;
+
+  // event input
+  const gEvent = {
+    summary: session.topic,
+    description: session.problem,
+    start: {
+      dateTime: session.startDateTime.toISOString(),
+    },
+    end: {
+      dateTime: session.endDateTime.toISOString(),
+    },
+    attendees: [{ email: fromEmail }, { email: toEmail }],
+    reminders: {
+      useDefault: false,
+      overrides: [
+        { method: "email", minutes: 24 * 60 },
+        { method: "popup", minutes: 10 },
+      ],
+    },
+  };
+
+  const calendar = google.calendar({ version: "v3" });
+
+  await calendar.events.insert({
+    calendarId: "primary",
+    auth: oauth2Client,
+    requestBody: gEvent,
+  });
+
+  return sendResponse(
+    res,
+    200,
+    true,
+    { session },
+    null,
+    "Create Google Event successfully"
   );
 });
 
