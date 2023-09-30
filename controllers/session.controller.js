@@ -192,11 +192,8 @@ sessionController.createGoogleEvent = catchAsync(async (req, res, next) => {
     requestBody: gEvent,
   });
 
-  // Construct the Google Calendar event URL
-  const eventUrl = `https://calendar.google.com/calendar/r/eventedit/${createdEvent.id}`;
-
   // Redirect the user to the Google Calendar event URL
-  res.redirect(eventUrl);
+  res.redirect(createdEvent.htmlLink);
 });
 
 module.exports = sessionController;
