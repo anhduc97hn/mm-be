@@ -1,5 +1,6 @@
 const { AppError, catchAsync, sendResponse } = require("../helper/utils");
 const User = require("../models/User");
+const UserProfile = require("../models/UserProfile");
 const bcrypt = require("bcryptjs");
 const authController = {};
 
@@ -13,11 +14,13 @@ authController.loginWithEmail = catchAsync(async (req, res, next) => {
   if (!isMatch) return next(new AppError(400, "Wrong password", "Login Error"));
 
   accessToken = await user.generateToken();
+  const userProfile = await UserProfile.findOne({userId: user._id}).populate("userId")
+  
   return sendResponse(
     res,
     200,
     true,
-    { user, accessToken },
+    { userProfile, accessToken },
     null,
     "Login successful"
   );

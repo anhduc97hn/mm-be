@@ -3,13 +3,21 @@ const Schema = mongoose.Schema;
 
 const experienceSchema = Schema(
   {
-    userProfile: { type: Schema.Types.ObjectId, required: true, ref: "UserProfile" },
+    userProfile: {
+      type: Schema.Types.ObjectId,
+      ref: "UserProfile",
+    },
     company: { type: String, default: "" },
     industry: { type: String, default: "" },
     location: { type: String, default: "" },
     url: { type: String, default: "" },
-    isDeleted: {type: Boolean, default: false, required: true},
-    position: { type: Schema.Types.ObjectId, ref: "Position" } 
+    position: {
+      title: { type: String, default: "" },
+      description: { type: String, default: "" },
+      start_date: { type: String, default: "" },
+      end_date: { type: String, default: "" },
+    },
+    isDeleted: { type: Boolean, default: false, required: true },
   },
   { timestamps: true }
 );

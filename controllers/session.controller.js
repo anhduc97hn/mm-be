@@ -2,86 +2,56 @@ const { AppError, catchAsync, sendResponse } = require("../helper/utils");
 const Session = require("../models/Session");
 const UserProfile = require("../models/UserProfile");
 const { google } = require("googleapis");
-const { JWT } = require("google-auth-library");
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const REDIRECT_URL = process.env.REDIRECT_URL; 
 
-const fs = require("fs");
-const credentialsPath = "./credentials.json";
+// OAuth2 client set up 
 
-const credentialsData = fs.readFileSync(credentialsPath, "utf8");
-const credentials = JSON.parse(credentialsData);
+const oauth2Client = new google.auth.OAuth2(
+  CLIENT_ID,
+  CLIENT_SECRET,
+  REDIRECT_URL
+);
+
+const scopes = [
+  'https://www.googleapis.com/auth/calendar'
+];
 
 const sessionController = {};
 
-const calculateSessionCount = async (userId) => {
-  const sessionCount = await Session.countDocuments({
-    $or: [
-      {
-        status: "completed",
-      },
-      { status: "reviewed" },
-    ],
-  });
-  await UserProfile.findOneAndUpdate(
-    { userId: userId },
-    { sessionCount: sessionCount }
-  );
-};
-
-const createGoogleMeetEvent = async (session) => {
-  const gEvent = {
-    summary: session.topic,
-    description: session.problem,
-    start: {
-      dateTime: session.startDateTime,
-      timeZone: "UTC", // Adjust timezone as needed
+const calculateSessionCount = async (userProfileId) => {
+  const filterConditions = [
+    {
+      to: userProfileId,
+      status: "completed",
     },
-    end: {
-      dateTime: session.endDateTime,
-      timeZone: "UTC", // Adjust timezone as needed
-    },
-    attendees: [{ email: session.toEmail }, { email: session.fromEmail }],
-    reminders: {
-      useDefault: true,
-      overrides: [{ method: "popup" | "email", minutes: number }],
-    },
-    sendUpdates: "all" | "externalOnly" | "none",
-  };
+  ];
 
-  // create client that we can use to communicate with Google
-  const client = new JWT({
-    email: credentials.client_email,
-    key: credentials.private_key,
-    scopes: [
-      // set the right scope
-      "https://www.googleapis.com/auth/calendar",
-      "https://www.googleapis.com/auth/calendar.events",
-    ],
+  const filterCriteria = filterConditions.length
+    ? { $and: filterConditions }
+    : {};
+
+  const sessionCount = await Session.countDocuments(filterCriteria);
+  await UserProfile.findByIdAndUpdate(userProfileId, {
+    sessionCount: sessionCount,
   });
-
-  const calendar = google.calendar({ version: "v3" });
-
-  const response = await calendar.events.insert({
-    calendarId: "primary",
-    auth: client,
-    requestBody: gEvent,
-  });
-
-  console.log("response", response);
-  return response.data;
 };
 
 sessionController.sendSessionRequest = catchAsync(async (req, res, next) => {
   const userId = req.userId; // From
-  const toUserId = req.params.id; // To
+  const { userProfileId } = req.params; // To
   const { topic, problem, startDateTime, endDateTime } = req.body;
 
-  const mentor = await UserProfile.findOne({ userId: toUserId });
-  if (!mentor)
+  const toUserProfile = await UserProfile.findById(userProfileId);
+  if (!toUserProfile )
     throw new AppError(400, "Mentor not found", "Send Session Request Error");
 
+  const fromUserProfile = await UserProfile.findOne({ userId: userId });
+
   const session = await Session.create({
-    from: userId,
-    to: toUserId,
+    from: fromUserProfile._id,
+    to: userProfileId,
     status: "pending",
     topic: topic,
     problem: problem,
@@ -89,117 +59,44 @@ sessionController.sendSessionRequest = catchAsync(async (req, res, next) => {
     endDateTime: endDateTime,
   });
 
-  return sendResponse(res, 200, true, session, null, "Request has ben sent");
+  return sendResponse(res, 200, true, session, null, "Request has been sent");
 });
 
-sessionController.getReceivedSessionRequestList = catchAsync(async (req, res, next) => {
-    let { page, limit, ...filter } = { ...req.query };
-    const userId = req.userId;
-
-    page = parseInt(page) || 1;
-    limit = parseInt(limit) || 10;
-
-    const filterConditions = [{ to: userId }, { status: "pending" }];
-    if (filter.topic) {
-      filterConditions.push({
-        ["topic"]: { $regex: filter.topic, $options: "i" },
-      });
-    }
-    const filterCrireria = filterConditions.length
-      ? { $and: filterConditions }
-      : {};
-
-    const count = await Session.countDocuments(filterCrireria);
-    const totalPages = Math.ceil(count / limit);
-    const offset = limit * (page - 1);
-
-    const sessions = await Session.find(filterCrireria)
-      .sort({ createdAt: -1 })
-      .skip(offset)
-      .limit(limit)
-      .populate("from")
-      .populate("userId");
-
-    return sendResponse(
-      res,
-      200,
-      true,
-      { sessions, totalPages, count },
-      null,
-      null
-    );
-  }
-);
-
-sessionController.getSentSessionRequestList = catchAsync(async (req, res, next) => {
-    let { page, limit, ...filter } = { ...req.query };
-    const userId = req.userId;
-
-    page = parseInt(page) || 1;
-    limit = parseInt(limit) || 10;
-
-    const filterConditions = [{ from: userId }, { status: "pending" }];
-    if (filter.topic) {
-      filterConditions.push({
-        ["topic"]: { $regex: filter.topic, $options: "i" },
-      });
-    }
-    const filterCrireria = filterConditions.length
-      ? { $and: filterConditions }
-      : {};
-
-    const count = await Session.countDocuments(filterCrireria);
-    const totalPages = Math.ceil(count / limit);
-    const offset = limit * (page - 1);
-
-    const sessions = await Session.find(filterCrireria)
-      .sort({ createdAt: -1 })
-      .skip(offset)
-      .limit(limit)
-      .populate("to")
-      .populate("userId");
-
-    return sendResponse(
-      res,
-      200,
-      true,
-      { sessions, totalPages, count },
-      null,
-      null
-    );
-  }
-);
 
 sessionController.reactSessionRequest = catchAsync(async (req, res, next) => {
-  const userId = req.userId; // To
-  const fromUserId = req.params.userId; // From
-  const { status, topic, problem, startDateTime, endDateTime } = req.body; // status: accepted | declined
+ 
+  const { sessionId } = req.params;
+  const { status } = req.body;  
 
-  // to double check this, as it will return an array of sessions. 
+  let session = await Session.findById(sessionId);
 
-  let session = await Session.findOne({
-    from: fromUserId,
-    to: userId,
-    status: "pending",
-  });
   if (!session)
     throw new AppError(
       400,
       "Session Request not found",
       "React Friend Request Error"
     );
-
+ 
   session.status = status;
 
   // call Google api if status is accepted
   if (status === "accepted") {
-    const gEventLink = await createGoogleMeetEvent(session);
-    session.gEventLink = gEventLink;
+    const state = session._id.toString();
+    const url = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: scopes,
+      state: state
+    });
+
+    session.gEventLink = url;
   }
+
+  // update session to DB 
   await session.save();
 
-  await calculateSessionCount(userId);
-  await calculateSessionCount(fromUserId);
+  const toUserProfileId = session.to;
+
+  await calculateSessionCount(toUserProfileId);
 
   return sendResponse(
     res,
@@ -207,75 +104,38 @@ sessionController.reactSessionRequest = catchAsync(async (req, res, next) => {
     true,
     session,
     null,
-    "React Session Request successfully"
-  );
-});
-
-sessionController.cancelSessionRequest = catchAsync(async (req, res, next) => {
-  
-  // to double check this as can return an array of sessions.
-
-  const userId = req.userId; // From
-  const toUserId = req.params.userId; // To
-
-  const session = await Session.findOneAndUpdate(
-    {
-      from: userId,
-      to: toUserId,
-      status: { $in: ["pending", "accepted"] },
-    },
-    {
-      $set: { status: "cancelled" },
-    },
-    { new: true }
-  );
-
-  if (!session)
-    throw new AppError(
-      400,
-      "Session Request not found",
-      "Cancel Request Error"
-    );
-
-  return sendResponse(
-    res,
-    200,
-    true,
-    session,
-    null,
-    "Session request has been cancelled"
+    "Update Session successfully"
   );
 });
 
 sessionController.getSessionList = catchAsync(async (req, res, next) => {
-  let { page, limit, ...filter } = { ...req.query };
+  let { page, limit, status } = req.query;
+  let userId = req.userId;
+
+  const userProfile = await UserProfile.findOne({ userId: userId });
 
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
 
-  const filterConditions = [{ status: { $in: ["completed", "reviewed"] } }];
+  const filterConditions = [
+    { status: status },
+    { $or: [{ from: userProfile._id }, { to: userProfile._id }] },
+  ];
 
-  if (filter.topic) {
-    filterConditions.push({
-      ["topic"]: { $regex: filter.name, $options: "i" },
-    });
-  }
-
-  const filterCrireria = filterConditions.length
+  const filterCriteria = filterConditions.length
     ? { $and: filterConditions }
     : {};
 
-  const count = await Session.countDocuments(filterCrireria);
+  const count = await Session.countDocuments(filterCriteria);
   const totalPages = Math.ceil(count / limit);
   const offset = limit * (page - 1);
 
-  const sessions = await Session.find(filterCrireria)
+  const sessions = await Session.find(filterCriteria)
     .sort({ createdAt: -1 })
     .skip(offset)
     .limit(limit)
     .populate("from")
-    .populate("to")
-    .populate("userId");
+    .populate("to");
 
   return sendResponse(
     res,
@@ -285,6 +145,55 @@ sessionController.getSessionList = catchAsync(async (req, res, next) => {
     null,
     null
   );
+});
+
+sessionController.createGoogleEvent = catchAsync(async (req, res, next) => {
+  
+  const { code, state } = req.query;
+  const { tokens } = await oauth2Client.getToken(code);
+  // Store or use the access and refresh tokens as needed
+  oauth2Client.setCredentials(tokens);
+ 
+  const session = await Session.findById(state);
+  const fromUserProfile = await UserProfile.findById(session.from).populate(
+    "userId"
+  );
+  const toUserProfile = await UserProfile.findById(session.to).populate(
+    "userId"
+  );
+  const toEmail = toUserProfile.userId.email;
+  const fromEmail = fromUserProfile.userId.email;
+
+  // event input
+  const gEvent = {
+    summary: session.topic,
+    description: session.problem,
+    start: {
+      dateTime: session.startDateTime.toISOString(),
+    },
+    end: {
+      dateTime: session.endDateTime.toISOString(),
+    },
+    attendees: [{ email: fromEmail }, { email: toEmail }],
+    reminders: {
+      useDefault: false,
+      overrides: [
+        { method: "email", minutes: 24 * 60 },
+        { method: "popup", minutes: 10 },
+      ],
+    },
+  };
+
+  const calendar = google.calendar({ version: "v3" });
+
+  const { data: createdEvent } = await calendar.events.insert({
+    calendarId: "primary",
+    auth: oauth2Client,
+    requestBody: gEvent,
+  });
+
+  // Redirect the user to the Google Calendar event URL
+  res.redirect(createdEvent.htmlLink);
 });
 
 module.exports = sessionController;

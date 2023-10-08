@@ -1,51 +1,70 @@
 const { AppError, catchAsync, sendResponse } = require("../helper/utils");
 const Review = require("../models/Review");
+const Session = require("../models/Session");
 const UserProfile = require("../models/UserProfile");
 const reviewController = {};
 
-const calculateReviewCount = async (mentorId) => {
-  const reviewCount = await Review.countDocuments({ to: mentorId });
-  await UserProfile.findOneAndUpdate(
-    { userId: mentorId },
-    { reviewCount: reviewCount }
-  );
+const calculateReviewCount = async (userProfileId) => {
+  const sessions = await Session.find({
+    to: userProfileId,
+    status: "reviewed",
+  });
+
+  // Count the reviews for these sessions
+  const reviewCount = await Review.countDocuments({
+    session: { $in: sessions.map((session) => session._id) },
+  });
+
+  // Save it to DB
+
+  await UserProfile.findByIdAndUpdate(userProfileId, {
+    reviewCount: reviewCount,
+  });
 };
 
-const calculateAverageRating = async (mentorId) => {
-  const result = await Review.aggregate([
-    {
-      $match: { to: mentorId },
-    },
-    {
-      $group: { _id: null, reviewAverageRating: { $avg: "$rating" } },
-    },
-  ]);
-  await UserProfile.findOneAndUpdate(
-    {
-      userId: mentorId,
-    },
-    { reviewAverageRating: result[0].reviewAverageRating }
-  );
+const calculateAverageRating = async (userProfileId) => {
+  const sessions = await Session.find({
+    to: userProfileId,
+    status: "reviewed",
+  });
+
+  // Find reviews for these sessions
+  const reviews = await Review.find({
+    session: { $in: sessions.map((session) => session._id) },
+  });
+
+  if (reviews.length === 0) {
+    // No reviews found, set the average rating to 0 or any default value
+    const reviewAverageRating = 0;
+    return reviewAverageRating;
+  }
+
+  // Calculate the average rating based on reviews
+  const ratings = reviews.map((review) => review.rating);
+  const reviewAverageRating =
+    ratings.reduce((acc, rating) => acc + rating, 0) / ratings.length;
+
+    // Save it to DB 
+  await UserProfile.findByIdAndUpdate(userProfileId, {
+    reviewAverageRating: reviewAverageRating,
+  });
 };
 
 reviewController.createNewReview = catchAsync(async (req, res, next) => {
-  const userId = req.userId;
-  const sessionId = req.params.id;
-  const { content, rating, mentorId } = req.body;
+  const { sessionId } = req.params;
+  const { content, rating } = req.body;
 
-  const session = session.findById(sessionId);
+  const session = await Session.findByIdAndUpdate(sessionId, {status: "reviewed"});
   if (!session)
     throw new AppError(404, "Session not found", "Create New Review Error");
 
   const review = await Review.create({
-    from: userId,
-    to: mentorId,
     session: sessionId,
     content,
     rating,
   });
-  await calculateReviewCount(mentorId);
-  await calculateAverageRating(mentorId);
+  await calculateReviewCount(session.to);
+  await calculateAverageRating(session.to);
 
   return sendResponse(
     res,
@@ -58,10 +77,10 @@ reviewController.createNewReview = catchAsync(async (req, res, next) => {
 });
 
 reviewController.getSingleReview = catchAsync(async (req, res, next) => {
-  const review = await Review.findById(req.params.id)
+  const { reviewId } = req.params; 
+
+  const review = await Review.findById(reviewId)
     .populate("session")
-    .populate("from")
-    .populate("to");
 
   if (!review)
     throw new AppError(404, "Review not found", "Get Single Review Error");
@@ -70,21 +89,30 @@ reviewController.getSingleReview = catchAsync(async (req, res, next) => {
 });
 
 reviewController.getReviews = catchAsync(async (req, res, next) => {
-  const mentorId = req.params.id;
+  const { userProfileId } = req.params;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
 
-  const mentor = UserProfile.findOne({userId: mentorId});
-  if (!mentor) throw new AppError(404, "Mentor not found", "Get Reviews Error");
+  const mentorProfile = await UserProfile.findById(userProfileId);
+  if (!mentorProfile)
+    throw new AppError(404, "Mentor not found", "Get Reviews Error");
 
-  const count = await Review.countDocuments({ to: mentorId });
+  const sessionsOfMentor = await Session.find({ to: userProfileId });
+
+  const sessionIds = sessionsOfMentor.map((session) => session._id)
+
+  const count = await Review.countDocuments({ session: { $in: sessionIds } })
   const totalPages = Math.ceil(count / limit);
   const offset = limit * (page - 1);
 
-  const reviews = await Review.find({ to: mentorId })
+  const reviews = await Review.find({ session: { $in: sessionIds } })
+    .populate({
+      path: "session",
+      populate: { path: "from to" },
+    })
     .sort({ createdAt: -1 })
     .skip(offset)
-    .limit(limit)
+    .limit(limit);
 
   return sendResponse(res, 200, true, { reviews, totalPages, count }, null, "");
 });

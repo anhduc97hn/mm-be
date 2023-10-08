@@ -6,15 +6,15 @@ const { body, param } = require("express-validator");
 const reviewController = require("../controllers/review.controller")
 
 /**
- * @route GET /reviews/:id
+ * @route GET /reviews/:reviewId
  * @description Get details of a review
  * @access Login required
  */
 router.get(
-  "/:id",
+  "/:reviewId",
   authMiddleware.loginRequired,
   validators.validate([
-    param("id").exists().isString().custom(validators.checkObjectId),
+    param("reviewId").exists().isString().custom(validators.checkObjectId),
   ]),
   reviewController.getSingleReview
 );

@@ -3,12 +3,11 @@ const Schema = mongoose.Schema;
 
 const educationSchema = Schema(
   {
-    userProfile: { type: Schema.Types.ObjectId, required: true, ref: "UserProfile" },
+    userProfile: { type: Schema.Types.ObjectId, ref: "UserProfile" },
     degree: { type: String, default: "" },
     end_year: { type: String, default: "" },
-    start_year: { type: String, default: "" },
     field: { type: String, default: "" },
-    title: { type: String, default: "" },
+    description: { type: String, default: "" },
     url: { type: String, default: "" },
     isDeleted: {type: Boolean, default: false, required: true}
   },
