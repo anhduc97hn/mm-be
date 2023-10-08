@@ -48,7 +48,7 @@ Mentor match is an app that aims to take user's professional development to a ne
 
 - [ ] Auth: forget password
 - [ ] Auth: sign up/sign in by google credentials
-- [ ] Session link: google meet to be saved directly to user's google calendar and/or be confirmed with an email sent to user's email address
+- [x] Session link: google meet to be saved directly to user's google calendar and/or be confirmed with an email sent to user's email address
 - [ ] Responsive UI
 
 **Deploy link**: https://mentor-match-site.netlify.app/ 
@@ -223,7 +223,7 @@ Mentor match is an app that aims to take user's professional development to a ne
 ```
 ```
 /**
- * @route POST /sessions/requests/:userId
+ * @route POST /sessions/requests/:userProfileId
  * @description Send a session request
  * @access Login required
  */
@@ -237,11 +237,19 @@ Mentor match is an app that aims to take user's professional development to a ne
 ```
 ```
 /**
+ * @route GET /sessions/google/redirect
+ * @description Google OAuth2 
+ * @access Google auth
+ */
+```
+```
+/**
  * @route PUT /sessions/:sessionId
  * @description Update status of a session (accept/decline/cancel/complete/pending/reviewed)
  * @access Login required
  */
 ```
+
 ## Review APIs
 ```
 /**
