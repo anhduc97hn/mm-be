@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const authMiddleware = require("../middlewares/authentication");
+const authMiddleware = require("../middlewares/auth");
 const validators = require("../middlewares/validators");
 const { body, param } = require("express-validator");
 
@@ -14,6 +14,7 @@ const expController = require("../controllers/exp.controller");
 router.post(
   "/",
   authMiddleware.loginRequired,
+  authMiddleware.mentorAccessRequired, 
   validators.validate([
     body("company", "Invalid company").exists().notEmpty(),
     body("industry", "Invalid industry").exists().notEmpty(),
@@ -31,6 +32,7 @@ router.post(
 router.get(
   "/",
   authMiddleware.loginRequired,
+  authMiddleware.mentorAccessRequired, 
   expController.getExp
 );
 
@@ -42,6 +44,7 @@ router.get(
 router.put(
   "/:expId",
   authMiddleware.loginRequired,
+  authMiddleware.mentorAccessRequired, 
   validators.validate([
     param("expId").exists().isString().custom(validators.checkObjectId),
   ]),
@@ -56,6 +59,7 @@ router.put(
 router.delete(
   "/:expId",
   authMiddleware.loginRequired,
+  authMiddleware.mentorAccessRequired, 
   validators.validate([
     param("expId").exists().isString().custom(validators.checkObjectId),
   ]),

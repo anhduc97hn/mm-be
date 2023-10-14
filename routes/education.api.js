@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const authMiddleware = require("../middlewares/authentication");
+const authMiddleware = require("../middlewares/auth");
 const validators = require("../middlewares/validators");
 const { body, param } = require("express-validator");
 
@@ -14,6 +14,7 @@ const eduController = require("../controllers/edu.controller");
 router.post(
   "/",
   authMiddleware.loginRequired,
+  authMiddleware.mentorAccessRequired, 
   validators.validate([
     body("degree", "Invalid degree").exists().notEmpty(),
     body("end_year", "Invalid end year").exists().notEmpty(),
@@ -31,6 +32,7 @@ router.post(
 router.get(
   "/",
   authMiddleware.loginRequired,
+  authMiddleware.mentorAccessRequired, 
   eduController.getEdu
 );
 
@@ -42,6 +44,7 @@ router.get(
 router.put(
   "/:educationId",
   authMiddleware.loginRequired,
+  authMiddleware.mentorAccessRequired, 
   validators.validate([
     param("educationId").exists().isString().custom(validators.checkObjectId),
   ]),
@@ -56,6 +59,7 @@ router.put(
 router.delete(
   "/:educationId",
   authMiddleware.loginRequired,
+  authMiddleware.mentorAccessRequired, 
   validators.validate([
     param("educationId").exists().isString().custom(validators.checkObjectId),
   ]),

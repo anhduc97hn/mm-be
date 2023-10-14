@@ -1,5 +1,7 @@
 const { AppError, catchAsync, sendResponse } = require("../helper/utils");
 const UserProfile = require("../models/UserProfile");
+const { HTTP_STATUS, ERROR_TYPES } = require("../helper/constants");
+
 const userProfileController = {};
 
 userProfileController.getCurrentUser = catchAsync(async (req, res, next) => {
@@ -7,11 +9,11 @@ userProfileController.getCurrentUser = catchAsync(async (req, res, next) => {
 
   const userProfile = await UserProfile.findOne({ userId: userId }).populate("userId");
   if (!userProfile)
-    throw new AppError(400, "User not found", "Get Current User Error");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "User not found", ERROR_TYPES.NOT_FOUND);
 
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     userProfile,
     null,
@@ -24,7 +26,7 @@ userProfileController.getUsers = catchAsync(async (req, res, next) => {
 
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
-
+ 
   const filterConditions = [{ isMentor: true }];
 
   if (filter.searchQuery) {
@@ -83,7 +85,7 @@ userProfileController.getUsers = catchAsync(async (req, res, next) => {
 
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     { userProfiles, totalPages, count },
     null,
@@ -92,6 +94,7 @@ userProfileController.getUsers = catchAsync(async (req, res, next) => {
 });
 
 userProfileController.getFeaturedUsers = catchAsync(async (req, res, next) => {
+
   let { page, limit } = req.query;
 
   page = parseInt(page) || 1;
@@ -114,7 +117,7 @@ userProfileController.getFeaturedUsers = catchAsync(async (req, res, next) => {
     .skip(offset)
     .limit(limit);
 
-  return sendResponse(res, 200, true, { userProfiles, count }, null, "");
+  return sendResponse(res, HTTP_STATUS.OK, true, { userProfiles, count }, null, "");
 });
 
 userProfileController.getSingleUser = catchAsync(async (req, res, next) => {
@@ -125,9 +128,9 @@ userProfileController.getSingleUser = catchAsync(async (req, res, next) => {
     .populate("experiences")
     .populate("certifications");
   if (!userProfile)
-    throw new AppError(404, "User not found", "Get Single User Error");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "User not found", ERROR_TYPES.NOT_FOUND);
 
-  return sendResponse(res, 200, true, userProfile, null, "");
+  return sendResponse(res, HTTP_STATUS.OK, true, userProfile, null, "");
 });
 
 userProfileController.updateProfile = catchAsync(async (req, res, next) => {
@@ -135,7 +138,7 @@ userProfileController.updateProfile = catchAsync(async (req, res, next) => {
   const userProfile = await UserProfile.findOne({ userId: userId });
 
   if (!userProfile)
-    throw new AppError(404, "Account not found", "Update Profile Error");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "Account not found", ERROR_TYPES.NOT_FOUND);
 
   const allows = [
     "name",
@@ -158,7 +161,7 @@ userProfileController.updateProfile = catchAsync(async (req, res, next) => {
   await userProfile.save();
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     userProfile,
     null,

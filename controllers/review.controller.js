@@ -2,6 +2,8 @@ const { AppError, catchAsync, sendResponse } = require("../helper/utils");
 const Review = require("../models/Review");
 const Session = require("../models/Session");
 const UserProfile = require("../models/UserProfile");
+const { HTTP_STATUS, ERROR_TYPES } = require("../helper/constants");
+
 const reviewController = {};
 
 const calculateReviewCount = async (userProfileId) => {
@@ -56,7 +58,7 @@ reviewController.createNewReview = catchAsync(async (req, res, next) => {
 
   const session = await Session.findByIdAndUpdate(sessionId, {status: "reviewed"});
   if (!session)
-    throw new AppError(404, "Session not found", "Create New Review Error");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "Session not found", ERROR_TYPES.NOT_FOUND);
 
   const review = await Review.create({
     session: sessionId,
@@ -68,7 +70,7 @@ reviewController.createNewReview = catchAsync(async (req, res, next) => {
 
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     review,
     null,
@@ -83,9 +85,9 @@ reviewController.getSingleReview = catchAsync(async (req, res, next) => {
     .populate("session")
 
   if (!review)
-    throw new AppError(404, "Review not found", "Get Single Review Error");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "Review not found", ERROR_TYPES.NOT_FOUND);
 
-  return sendResponse(res, 200, true, review, null, null);
+  return sendResponse(res, HTTP_STATUS.OK, true, review, null, null);
 });
 
 reviewController.getReviews = catchAsync(async (req, res, next) => {
@@ -95,7 +97,7 @@ reviewController.getReviews = catchAsync(async (req, res, next) => {
 
   const mentorProfile = await UserProfile.findById(userProfileId);
   if (!mentorProfile)
-    throw new AppError(404, "Mentor not found", "Get Reviews Error");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "Mentor not found", ERROR_TYPES.NOT_FOUND);
 
   const sessionsOfMentor = await Session.find({ to: userProfileId });
 
@@ -114,7 +116,7 @@ reviewController.getReviews = catchAsync(async (req, res, next) => {
     .skip(offset)
     .limit(limit);
 
-  return sendResponse(res, 200, true, { reviews, totalPages, count }, null, "");
+  return sendResponse(res, HTTP_STATUS.OK, true, { reviews, totalPages, count }, null, "");
 });
 
 module.exports = reviewController;

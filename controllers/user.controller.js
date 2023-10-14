@@ -2,13 +2,15 @@ const { AppError, catchAsync, sendResponse } = require("../helper/utils");
 const User = require("../models/User");
 const UserProfile = require("../models/UserProfile");
 const bcrypt = require("bcryptjs");
+const { HTTP_STATUS, ERROR_TYPES } = require("../helper/constants");
+
 const userController = {};
 
 userController.register = catchAsync(async (req, res, next) => {
   let { name, email, password, isMentor } = req.body;
 
   let user = await User.findOne({ email });
-  if (user) throw new AppError(409, "User already exists", "Register Error");
+  if (user) throw new AppError(HTTP_STATUS.CONFLICT, "User already exists", ERROR_TYPES.CONFLICT);
 
   const salt = await bcrypt.genSalt(10);
   password = await bcrypt.hash(password, salt);
@@ -32,7 +34,7 @@ userController.register = catchAsync(async (req, res, next) => {
 
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     { userProfile, accessToken },
     null,

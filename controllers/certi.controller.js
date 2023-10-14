@@ -1,6 +1,7 @@
 const { AppError, catchAsync, sendResponse } = require("../helper/utils");
 const Certification = require("../models/Certification");
 const UserProfile = require("../models/UserProfile");
+const { HTTP_STATUS, ERROR_TYPES } = require("../helper/constants");
 const certiController = {};
 
 certiController.createNewCerti = catchAsync(async (req, res, next) => {
@@ -17,7 +18,7 @@ certiController.createNewCerti = catchAsync(async (req, res, next) => {
   userProfile.certifications.push(certification._id);
   await userProfile.save();
 
-  return sendResponse(res, 200, true, certification, null, "Create new certi successful");
+  return sendResponse(res, HTTP_STATUS.OK, true, certification, null, "Create new certi successful");
 });
 
 certiController.getCerti = catchAsync(async (req, res, next) => {
@@ -43,7 +44,7 @@ certiController.getCerti = catchAsync(async (req, res, next) => {
   
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     { certifications, totalPages, count },
     null,
@@ -56,7 +57,7 @@ certiController.updateSingleCerti = catchAsync(async (req, res, next) => {
 
   const certification = await Certification.findById(certiId);
   if (!certification)
-    throw new AppError(404, "Certification not found", "Update Certification Error");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "Certification not found", ERROR_TYPES.NOT_FOUND);
 
   const allows = ["name", "description", "url"];
   allows.forEach((field) => {
@@ -68,7 +69,7 @@ certiController.updateSingleCerti = catchAsync(async (req, res, next) => {
   await certification.save();
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     certification,
     null,
@@ -84,14 +85,14 @@ certiController.deleteSingleCerti = catchAsync(async (req, res, next) => {
 
   if (!certification)
     throw new AppError(
-      400,
-      "Certification not found or User not authorized",
-      "Delete Certification Error"
+      HTTP_STATUS.NOT_FOUND,
+      "Certification not found",
+      ERROR_TYPES.NOT_FOUND
     );
 
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     certification,
     null,

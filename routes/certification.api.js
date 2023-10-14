@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const authMiddleware = require("../middlewares/authentication");
+const authMiddleware = require("../middlewares/auth");
 const validators = require("../middlewares/validators");
 const { body, param } = require("express-validator");
 
@@ -14,6 +14,7 @@ const certiController = require("../controllers/certi.controller");
 router.post(
   "/",
   authMiddleware.loginRequired,
+  authMiddleware.mentorAccessRequired, 
   validators.validate([
     body("name", "Invalid name").exists().notEmpty(),
     body("description", "Invalid description").exists().notEmpty(),
@@ -29,6 +30,7 @@ router.post(
 router.get(
   "/",
   authMiddleware.loginRequired,
+  authMiddleware.mentorAccessRequired, 
   certiController.getCerti
 );
 
@@ -40,6 +42,7 @@ router.get(
 router.put(
   "/:certiId",
   authMiddleware.loginRequired,
+  authMiddleware.mentorAccessRequired, 
   validators.validate([
     param("certiId").exists().isString().custom(validators.checkObjectId),
   ]),
@@ -54,6 +57,7 @@ router.put(
 router.delete(
   "/:certiId",
   authMiddleware.loginRequired,
+  authMiddleware.mentorAccessRequired, 
   validators.validate([
     param("certiId").exists().isString().custom(validators.checkObjectId),
   ]),

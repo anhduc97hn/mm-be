@@ -1,9 +1,10 @@
 var express = require("express");
 var router = express.Router();
+const { HTTP_STATUS, ERROR_TYPES } = require("../helper/constants");
 
 /* GET home page. */
 router.get("/", function (req, res, next) {
-  res.status(200).send("welcome back");
+  res.status(HTTP_STATUS.OK).send("welcome back");
 });
 
 // authApi

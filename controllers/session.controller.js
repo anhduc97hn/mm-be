@@ -5,6 +5,7 @@ const { google } = require("googleapis");
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URL = process.env.REDIRECT_URL; 
+const { HTTP_STATUS, ERROR_TYPES } = require("../helper/constants");
 
 // OAuth2 client set up 
 
@@ -45,7 +46,7 @@ sessionController.sendSessionRequest = catchAsync(async (req, res, next) => {
 
   const toUserProfile = await UserProfile.findById(userProfileId);
   if (!toUserProfile )
-    throw new AppError(400, "Mentor not found", "Send Session Request Error");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "Mentor not found", ERROR_TYPES.NOT_FOUND);
 
   const fromUserProfile = await UserProfile.findOne({ userId: userId });
 
@@ -59,7 +60,7 @@ sessionController.sendSessionRequest = catchAsync(async (req, res, next) => {
     endDateTime: endDateTime,
   });
 
-  return sendResponse(res, 200, true, session, null, "Request has been sent");
+  return sendResponse(res, HTTP_STATUS.OK, true, session, null, "Request has been sent");
 });
 
 
@@ -72,9 +73,9 @@ sessionController.reactSessionRequest = catchAsync(async (req, res, next) => {
 
   if (!session)
     throw new AppError(
-      400,
+      HTTP_STATUS.NOT_FOUND,
       "Session Request not found",
-      "React Friend Request Error"
+      ERROR_TYPES.NOT_FOUND
     );
  
   session.status = status;
@@ -100,7 +101,7 @@ sessionController.reactSessionRequest = catchAsync(async (req, res, next) => {
 
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     session,
     null,
@@ -109,7 +110,7 @@ sessionController.reactSessionRequest = catchAsync(async (req, res, next) => {
 });
 
 sessionController.getSessionList = catchAsync(async (req, res, next) => {
-  let { page, limit, status } = req.query;
+  let {  page, limit, status } = req.query;
   let userId = req.userId;
 
   const userProfile = await UserProfile.findOne({ userId: userId });
@@ -139,7 +140,7 @@ sessionController.getSessionList = catchAsync(async (req, res, next) => {
 
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     { sessions, totalPages, count },
     null,

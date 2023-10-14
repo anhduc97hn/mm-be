@@ -90,7 +90,7 @@ async function seedDB() {
     }
 
     // Seed User data with Faker
-    const userData = Array.from({ length: 20 }, () => ({
+    const userData = Array.from({ length: 40 }, () => ({
       email: faker.internet.email(),
       password: faker.internet.password(),
     }));
@@ -117,7 +117,7 @@ async function seedDB() {
   const userProfile = await UserProfile.insertMany(userProfileData);
 
     // Seed User background with Faker
-    const educationData = Array.from({ length: 40 }, () => ({
+    const educationData = Array.from({ length: 80 }, () => ({
       userProfile: userProfile[faker.number.int({ min: 0, max: userProfile.length - 1 })]._id,
       degree: faker.lorem.sentence(5),
       end_year: faker.date.past({
@@ -131,7 +131,7 @@ async function seedDB() {
 
     const education = await Education.insertMany(educationData);
 
-    const experienceData = Array.from({ length: 40 }, () => {
+    const experienceData = Array.from({ length: 80 }, () => {
       const end_date = faker.date.past();
       return {
         userProfile: userProfile[faker.number.int({ min: 0, max: userProfile.length - 1 })]._id,
@@ -150,7 +150,7 @@ async function seedDB() {
 
     const experiences = await Experience.insertMany(experienceData);
 
-    const certificationData = Array.from({ length: 40 }, () => ({
+    const certificationData = Array.from({ length: 80 }, () => ({
       userProfile: userProfile[faker.number.int({ min: 0, max: userProfile.length - 1 })]._id,
       name: faker.lorem.sentence(5),
       description: faker.lorem.paragraph(),
@@ -199,7 +199,7 @@ async function seedDB() {
 
     // Seed Session
 
-    const sessionData = Array.from({ length: 40 }, () => {
+    const sessionData = Array.from({ length: 80 }, () => {
       const startDateTime = faker.date.anytime();
       const endDateTime = new Date(startDateTime);
       endDateTime.setHours(endDateTime.getHours() + 1);

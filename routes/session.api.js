@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const authMiddleware = require("../middlewares/authentication");
+const authMiddleware = require("../middlewares/auth");
 const validators = require("../middlewares/validators");
 const { body, param } = require("express-validator");
 
@@ -14,6 +14,7 @@ const reviewController = require("../controllers/review.controller")
 router.post(
   "/:sessionId/reviews",
   authMiddleware.loginRequired,
+  authMiddleware.customerAccessRequired,
   validators.validate([
     body("content", "Missing content").exists().notEmpty(),
     body("rating", "Missing rating").exists().notEmpty(),
@@ -31,6 +32,7 @@ const sessionController = require("../controllers/session.controller")
 router.post(
   "/requests/:userProfileId",
   authMiddleware.loginRequired,
+  authMiddleware.customerAccessRequired, 
   validators.validate([
     param("userProfileId").exists().isString().custom(validators.checkObjectId),
     body("topic", "missing topic").exists().notEmpty(),

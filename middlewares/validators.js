@@ -1,6 +1,8 @@
 const { sendResponse } = require("../helper/utils");
 const mongoose = require("mongoose");
 const { validationResult } = require("express-validator");
+const { HTTP_STATUS, ERROR_TYPES } = require("../helper/constants");
+
 const validators = {};
 
 validators.validate = (validationArray) => async (req, res, next) => {
@@ -12,7 +14,7 @@ validators.validate = (validationArray) => async (req, res, next) => {
     .array()
     .map((error) => error.msg)
     .join(" & ");
-  return sendResponse(res, 422, false, null, { message }, "Validation Error");
+  return sendResponse(res, HTTP_STATUS.UNPROCESSABLE_ENTITY, false, null, { message }, ERROR_TYPES.UNPROCESSABLE_ENTITY);
 };
 
 validators.checkObjectId = (paramId) => {

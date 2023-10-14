@@ -1,6 +1,7 @@
 const { AppError, catchAsync, sendResponse } = require("../helper/utils");
 const Education = require("../models/Education");
 const UserProfile = require("../models/UserProfile");
+const { HTTP_STATUS, ERROR_TYPES } = require("../helper/constants");
 const eduController = {};
 
 eduController.createNewEdu = catchAsync(async (req, res, next) => {
@@ -17,7 +18,7 @@ eduController.createNewEdu = catchAsync(async (req, res, next) => {
   userProfile.education.push(education._id);
   await userProfile.save(); 
 
-  return sendResponse(res, 200, true, education, null, "Create new edu successful");
+  return sendResponse(res, HTTP_STATUS.OK, true, education, null, "Create new edu successful");
 });
 
 eduController.getEdu = catchAsync(async (req, res, next) => {
@@ -26,7 +27,6 @@ eduController.getEdu = catchAsync(async (req, res, next) => {
 
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
-
   const currentUserProfile = await UserProfile.findOne({
     userId: currentUserId,
   });
@@ -50,7 +50,7 @@ eduController.getEdu = catchAsync(async (req, res, next) => {
 
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     { educations, totalPages, count },
     null,
@@ -63,7 +63,7 @@ eduController.updateSingleEdu = catchAsync(async (req, res, next) => {
 
   const education = await Education.findById(educationId);
   if (!education)
-    throw new AppError(404, "Education not found", "Update Education Error");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "Education not found", ERROR_TYPES.NOT_FOUND);
 
   const allows = ["degree", "end_year", "field", "description", "url"];
   allows.forEach((field) => {
@@ -75,7 +75,7 @@ eduController.updateSingleEdu = catchAsync(async (req, res, next) => {
   await education.save();
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     education,
     null,
@@ -91,14 +91,14 @@ eduController.deleteSingleEdu = catchAsync(async (req, res, next) => {
 
   if (!education)
     throw new AppError(
-      400,
-      "Education not found or User not authorized",
-      "Delete Education Error"
+      HTTP_STATUS.NOT_FOUND,
+      "Education not found",
+      ERROR_TYPES.NOT_FOUND
     );
 
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     education,
     null,

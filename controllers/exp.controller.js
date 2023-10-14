@@ -1,6 +1,8 @@
 const { AppError, catchAsync, sendResponse } = require("../helper/utils");
 const Experience = require("../models/Experience");
 const UserProfile = require("../models/UserProfile");
+const { HTTP_STATUS, ERROR_TYPES } = require("../helper/constants");
+
 const expController = {};
 
 expController.createNewExp = catchAsync(async (req, res, next) => {
@@ -19,7 +21,7 @@ expController.createNewExp = catchAsync(async (req, res, next) => {
 
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     experience,
     null,
@@ -28,13 +30,21 @@ expController.createNewExp = catchAsync(async (req, res, next) => {
 });
 
 expController.getExp = catchAsync(async (req, res, next) => {
-  const currentUserId = req.userId; 
+  const currentUserId = req.userId;
   let { page, limit } = req.query;
 
-  const currentUserProfile = await UserProfile.findOne({userId: currentUserId});
+  
+  const currentUserProfile = await UserProfile.findOne({
+    userId: currentUserId,
+  });
+
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
-  const filterConditions = [{ isDeleted: false }, {userProfile: currentUserProfile._id}];
+
+  const filterConditions = [
+    { isDeleted: false },
+    { userProfile: currentUserProfile._id },
+  ];
   const filterCrireria = filterConditions.length
     ? { $and: filterConditions }
     : {};
@@ -46,11 +56,11 @@ expController.getExp = catchAsync(async (req, res, next) => {
   const experiences = await Experience.find(filterCrireria)
     .sort({ createdAt: -1 })
     .skip(offset)
-    .limit(limit)
-  
+    .limit(limit);
+
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     { experiences, totalPages, count },
     null,
@@ -63,7 +73,11 @@ expController.updateSingleExp = catchAsync(async (req, res, next) => {
 
   const experience = await Experience.findById(expId);
   if (!experience)
-    throw new AppError(404, "Experience not found", "Update Experience Error");
+    throw new AppError(
+      HTTP_STATUS.NOT_FOUND,
+      "Experience not found",
+      ERROR_TYPES.NOT_FOUND
+    );
 
   const allows = ["company", "industry", "location", "position", "url"];
   allows.forEach((field) => {
@@ -75,7 +89,7 @@ expController.updateSingleExp = catchAsync(async (req, res, next) => {
   await experience.save();
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     experience,
     null,
@@ -91,14 +105,14 @@ expController.deleteSingleExp = catchAsync(async (req, res, next) => {
 
   if (!experience)
     throw new AppError(
-      400,
-      "Experience not found or User not authorized",
-      "Delete Experience Error"
+      HTTP_STATUS.NOT_FOUND,
+      "Experience not found",
+      ERROR_TYPES.NOT_FOUND
     );
 
   return sendResponse(
     res,
-    200,
+    HTTP_STATUS.OK,
     true,
     experience,
     null,
