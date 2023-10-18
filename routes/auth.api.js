@@ -21,4 +21,44 @@ router.post(
   authController.loginWithEmail
 );
 
+/**
+ * @route POST /auth/googlelogin
+ * @description Log in OAuth2
+ * @access Public
+ */
+router.post(
+  "/googlelogin",
+  authController.loginWithGoogle
+);
+
+/**
+ * @route PUT /auth/forgotpassword
+ * @description forget password 
+ * @access Public
+ */
+router.put(
+  "/forgotpassword",
+  validators.validate([
+    body("email", "Invalid email")
+      .exists()
+      .isEmail()
+      .normalizeEmail({ gmail_remove_dots: false }),
+  ]),
+  authController.forgotPassword
+);
+
+/**
+ * @route PUT /auth/resetpassword
+ * @description reset password  
+ * @access resetToken access
+ */
+router.put(
+  "/resetpassword",
+  validators.validate([
+    body("newPassword", "Invalid new password").exists().notEmpty(),
+    body("resetToken", "Invalid reset link").exists().notEmpty(),
+  ]),
+  authController.resetPassword
+);
+
 module.exports = router;
