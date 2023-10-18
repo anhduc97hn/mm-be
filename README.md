@@ -75,12 +75,15 @@ Mentor match is an app that aims to take user's professional development to a ne
  * @access Public
  */
 ```
-``/**
+
+```
+/**
  * @route POST /auth/googlelogin
  * @description Login with OAuth2
  * @access Public
- */`
+ */
 ```
+
 ```
 /**
  * @route PUT /auth/forgotpassword
@@ -88,6 +91,7 @@ Mentor match is an app that aims to take user's professional development to a ne
  * @access Public
  */
 ```
+
 ```
 /**
  * @route PUT /auth/resetpassword
