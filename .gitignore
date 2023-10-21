@@ -62,3 +62,6 @@ typings/
 
 # google credentials
 .credentials.json
+
+# vercal config
+now.json
