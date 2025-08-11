@@ -102,8 +102,9 @@ async function seedDB() {
     
     return {
       userId: user._id,
+      isMentor: true, 
       name: faker.person.fullName(),
-      avatarUrl: faker.internet.avatar(),
+      avatarUrl: faker.image.personPortrait(),
       aboutMe: faker.person.bio(),
       city: faker.location.city(),
       currentCompany: faker.company.name(),
